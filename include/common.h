@@ -1,11 +1,14 @@
 #ifndef TUN_LAB_COMMON_H
 #define TUN_LAB_COMMON_H
 
-#define REMOTE_ADDR "172.26.50.199"
-#define REMOTE_PORT 8080
+#define REMOTE_ADDR "114.114.114.114"
+//#define REMOTE_ADDR "172.26.50.199"
+//#define REMOTE_ADDR "192.168.137.1"
+#define REMOTE_PORT 53
 
+//#define LOCAL_ADDR "192.168.137.2"
 #define LOCAL_ADDR "10.0.0.2"
-#define LOCAL_PORT 16888
+#define LOCAL_PORT 15888
 
 #define IP_HDR_LEN 20
 #define TCP_HDR_LEN 20

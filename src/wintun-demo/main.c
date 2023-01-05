@@ -20,6 +20,8 @@ static WINTUN_RELEASE_RECEIVE_PACKET_FUNC *WintunReleaseReceivePacket;
 static WINTUN_ALLOCATE_SEND_PACKET_FUNC *WintunAllocateSendPacket;
 static WINTUN_SEND_PACKET_FUNC *WintunSendPacket;
 
+static unsigned long local_addr = 0;
+
 static HMODULE
 InitializeWintun(void)
 {
@@ -296,6 +298,43 @@ TunSockReset(WINTUN_SESSION_HANDLE Session, SOCKADDR_IN *Address)
     return ERROR_SUCCESS;
 }
 
+static DWORD
+TunSockGetDynamicAddress(WINTUN_SESSION_HANDLE Session, SOCKADDR_IN *Address)
+{
+    const char *dhcp_discover =
+        "\xff\xff\xff\xff\xff\xff\x00\x15\x5d\x32\xc7\x02\x08\x00\x45\xc0" \
+        "\x01\x45\x00\x00\x40\x00\x40\x11\x38\xe9\x00\x00\x00\x00\xff\xff" \
+        "\xff\xff\x00\x44\x00\x43\x01\x31\x52\x82\x01\x01\x06\x00\x7f\x8f" \
+        "\x8d\x6e\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x15\x5d\x32\xc7\x02\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
+        "\x00\x00\x00\x00\x00\x00\x63\x82\x53\x63\x35\x01\x01\x3d\x07\x01" \
+        "\x00\x15\x5d\x32\xc7\x02\x37\x11\x01\x02\x06\x0c\x0f\x1a\x1c\x79" \
+        "\x03\x21\x28\x29\x2a\x77\xf9\xfc\x11\x39\x02\x02\x40\x0c\x13\x73" \
+        "\x68\x74\x2d\x56\x69\x72\x74\x75\x61\x6c\x2d\x4d\x61\x63\x68\x69" \
+        "\x6e\x65\xff";
+
+    BYTE *Packet;
+    DWORD PacketSize;
+
+    PacketSize = 325;
+    Packet = WintunAllocateSendPacket(Session, PacketSize);
+    memcpy(Packet, dhcp_discover + 14, PacketSize);
+    WintunSendPacket(Session, Packet);
+
+    return 0;
+}
 
 int __cdecl
 main()
@@ -308,11 +347,12 @@ main()
 
     DWORD LastError;
     GUID ExampleGuid = { 0xdeadbabe, 0xcafe, 0xbeef, { 0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef } };
-    WINTUN_ADAPTER_HANDLE Adapter = WintunCreateAdapter(L"Demo", L"Example", &ExampleGuid);
+//    WINTUN_ADAPTER_HANDLE Adapter = WintunCreateAdapter(L"Demo", L"Example", &ExampleGuid);
+    WINTUN_ADAPTER_HANDLE Adapter = WintunOpenAdapter(L"Demo");
     if (!Adapter)
     {
         LastError = GetLastError();
-        LogError(L"Failed to create adapter", LastError);
+        LogError(L"Failed to open adapter", LastError);
         goto cleanupWintun;
     }
 
@@ -340,15 +380,30 @@ main()
         goto cleanupAdapter;
     }
 
-    SOCKADDR_IN Address;
-    Address.sin_family = AF_INET;
-    Address.sin_addr.s_addr = inet_addr(REMOTE_ADDR);
-    Address.sin_port = htons(REMOTE_PORT);
     // Must sleep for 1 second here, or the server side will not reply
     Sleep(1000);
+
+    SOCKADDR_IN Address;
+    Address.sin_family = AF_INET;
+
+//    for (int i = 0; i < 100; ++i) {
+//        TunSockGetDynamicAddress(Session, &Address);
+//        Log(WINTUN_LOG_INFO, L"DHCP Discover sent");
+//        Sleep(1000);
+//    }
+//    if (TunSockGetDynamicAddress(Session, &Address) != 0)
+//    {
+//        LastError = LogLastError(L"Failed to get dynamic address");
+//        goto cleanupSession;
+//    }
+
+    Address.sin_addr.s_addr = inet_addr(REMOTE_ADDR);
+    Address.sin_port = htons(REMOTE_PORT);
+
     TunSockConnect(Session, &Address);
     TunSockReset(Session, &Address);
 
+    cleanupSession:
     WintunEndSession(Session);
     cleanupAdapter:
     WintunCloseAdapter(Adapter);

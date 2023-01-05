@@ -33,8 +33,6 @@ main()
         return -1;
     }
 
-    // TODO: Add support to TUN device
-
     nic_buffer = malloc(4096);
     // TODO: start tap read thread
 
