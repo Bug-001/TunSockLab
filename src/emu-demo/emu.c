@@ -41,15 +41,14 @@ main()
     return 0;
 }
 
-void vm_exit(enum vm_exit_cause cause)
+int vm_exit(enum vm_exit_cause cause)
 {
     switch (cause) {
         case VM_TX_INTR:
-            if (tap_win32_write(handle, nic_buffer, nic_buffer_len)) {
-                LogError();
-            }
-            break;
+            return tap_win32_write(handle, nic_buffer, nic_buffer_len);
+        case VM_STOP:
+            exit(0);
         default:
-            break;
+            return -1;
     }
 }

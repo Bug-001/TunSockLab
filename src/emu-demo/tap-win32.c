@@ -463,10 +463,9 @@ int tap_win32_write(tap_win32_overlapped_t *overlapped,
     if (!result) {
         error = GetLastError();
         if (error == ERROR_IO_PENDING) {
-//            result = GetOverlappedResult(overlapped->handle,
-//                                         &overlapped->write_overlapped,
-//                                         &write_size, TRUE);
-            result = TRUE;
+            result = GetOverlappedResult(overlapped->handle,
+                                         &overlapped->write_overlapped,
+                                         &write_size, TRUE);
         }
     }
 #endif

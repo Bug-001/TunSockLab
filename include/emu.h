@@ -7,11 +7,12 @@
 
 enum vm_exit_cause {
     VM_NONE,
-    VM_TX_INTR
+    VM_TX_INTR,
+    VM_STOP
 };
 
 void vm_start();
-void vm_exit(enum vm_exit_cause cause);
+int vm_exit(enum vm_exit_cause cause);
 
 extern char *nic_buffer;
 extern long nic_buffer_len;
